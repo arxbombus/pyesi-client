@@ -3,6 +3,7 @@ name = "pyesi-client"
 version = "0.1.0"
 description = "EVE Online ESI client library built on pyesi-openapi with caching and utilities"
 authors = [{ name = "arxbombus", email = "arxbombus@gmail.com" }]
+license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -15,6 +16,9 @@ dependencies = [
 [dependency-groups]
 dev = ["pytest>=8.0.0", "pytest-cov>=4.0.0", "pytest-sugar>=1.0.0"]
 lint = ["pre-commit>=3.0.0", "ruff>=0.1.0", "pyright>=1.1.405"]
+
+[project.urls]
+Repository = "https://github.com/arxbombus/pyesi-client"
 
 [tool.uv]
 python-downloads = "manual"
