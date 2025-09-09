@@ -1,6 +1,6 @@
 [project]
 name = "pyesi-client"
-version = "0.1.0"
+version = "0.1.1"
 description = "EVE Online ESI client library built on pyesi-openapi with caching and utilities"
 authors = [{ name = "arxbombus", email = "arxbombus@gmail.com" }]
 license = { file = "LICENSE" }

@@ -7,7 +7,7 @@ EVE SSO Constants
 from enum import Enum
 
 DEFAULT_ESI_HOST = "https://esi.evetech.net"
-DEFAULT_ESI_AGENT = "pyesi-client/0.1.0"
+DEFAULT_ESI_AGENT = "pyesi-client/0.1.1"
 DEFAULT_ESI_ENDPOINTS_URL = "https://login.eveonline.com/.well-known/oauth-authorization-server"
 DEFAULT_ESI_ISSUER_ENDPOINT = "https://login.eveonline.com"
 DEFAULT_ESI_AUTH_ENDPOINT = "https://login.eveonline.com/v2/oauth/authorize"
