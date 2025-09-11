@@ -4,6 +4,7 @@ eve-esi-python
 EVE SSO Constants
 """
 
+from datetime import date
 from enum import Enum
 
 DEFAULT_ESI_HOST = "https://esi.evetech.net"
@@ -17,6 +18,10 @@ DEFAULT_ESI_REVOCATION_ENDPOINT = "https://login.eveonline.com/v2/oauth/revoke"
 DEFAULT_ESI_JWK_KID = "JWT-Signature-Key"
 DEFAULT_ESI_AUDIENCE = "EVE Online"
 DEFAULT_MAX_RETRIES = 5
+DEFAULT_BACKOFF_FACTOR = 3
+DEFAULT_BACKOFF_JITTER = 0.5
+DEFAULT_BACKOFF_MAX = 300
+DEFAULT_COMPATIBILITY_DATE = date(2025, 8, 26)
 
 
 class EsiResponseType(str, Enum):

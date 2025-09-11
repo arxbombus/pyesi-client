@@ -10,7 +10,7 @@ A professional, modern Python client for the EVE Online ESI (Electronic Systems 
 ## ✨ Features
 
 - **🔐 Smart Authentication**: Automatic token refresh, PKCE support, and secure token storage
-- **⚡ High Performance**: Built on the generated `pyesi-openapi` client for maximum efficiency  
+- **⚡ High Performance**: Built on the generated `pyesi-openapi` client for maximum efficiency
 - **🛡️ Type Safe**: Full Pydantic v2 type annotations for all API responses
 - **🔄 Token Management**: Intelligent JWT token validation and refresh handling
 - **📊 Scope Management**: Easy ESI scope selection and validation
@@ -47,20 +47,6 @@ client = EsiClient(
         EsiScope.CHARACTERS_READ_CORPORATION_HISTORY,
     ]
 )
-
-# Use as context manager (recommended)
-with client:
-    # Get character information
-    character_info = client.character.get_characters_character_id(
-        character_id=123456789
-    )
-    print(f"Character: {character_info.name}")
-    
-    # Get corporation information
-    corp_info = client.corporation.get_corporations_corporation_id(
-        corporation_id=character_info.corporation_id
-    )
-    print(f"Corporation: {corp_info.name}")
 ```
 
 ### Authentication Flow
@@ -76,7 +62,8 @@ client = EsiClient(
         EsiScope.CHARACTERS_READ_CHARACTER,
         EsiScope.ASSETS_READ_ASSETS,
         EsiScope.WALLET_READ_CHARACTER_WALLET,
-    ]
+    ],
+    retry=urllib3.Retry(total=5, backoff_factor=3, backoff_jitter=0.5, backoff_max=300)
 )
 
 # Step 1: Get authorization URL
@@ -85,12 +72,23 @@ print(f"Visit: {auth_url}")
 
 # Step 2: After user authorization, exchange code for tokens
 # (callback_code comes from your redirect URI)
-tokens = client.authenticate_with_code(callback_code)
+tokens = client.authenticate(callback_code)
+
+# Alternatively, authenticate with refresh token
+# tokens = client.authenticate_refresh_token("MY_REFRESH_TOKEN")
 
 # Step 3: Client is now authenticated and ready to use
 character_info = client.character.get_characters_character_id(
     character_id=tokens.character_id
 )
+```
+
+You can also access other auth objects like so:
+
+```py
+# Access auto-refreshed tokens
+access_token = client.auth.access_token
+refresh_token = client.auth.refresh_token
 ```
 
 ## 📚 API Reference
@@ -183,7 +181,7 @@ auth_url = client.get_authorization_url()  # Includes code_challenge
 
 ```python
 # Check authentication status
-if client.is_authenticated():
+if client.is_authenticated:
     print("Client is ready to make authenticated requests")
 
 # Get current token info
@@ -205,7 +203,7 @@ client = EsiClient(
     client_secret="your_client_secret",
     redirect_uri="https://yourapp.com/callback",
     scopes=[EsiScope.CHARACTERS_READ_CHARACTER],
-    
+
     # Optional configuration
     user_agent="YourApp/1.0.0 (contact@yourapp.com)",
     timeout=30,  # Request timeout in seconds

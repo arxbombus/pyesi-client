@@ -78,3 +78,6 @@ uv.lock
 
 # Ruff
 .ruff_cache/
+
+# AI
+plan/*

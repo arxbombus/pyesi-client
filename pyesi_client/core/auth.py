@@ -33,12 +33,12 @@ from pyesi_client.models.auth_models import (
     EsiRequestHeaders,
     EsiTokenPKCE,
 )
+from pyesi_client.models.jwk_models import EsiMetadataResponseEndpoints
 from pyesi_client.models.token_models import (
     EsiJwtTokenData,
     EsiTokenResponse,
     EsiTokenSet,
 )
-from pyesi_client.models.jwk_models import EsiMetadataResponseEndpoints
 
 
 class EsiAuth:
@@ -53,7 +53,7 @@ class EsiAuth:
         metadata_endpoints_url: str = DEFAULT_ESI_ENDPOINTS_URL,
         metadata_ttl: int = METADATA_TTL_DEFAULT,
         jwks_ttl: int = JWK_TTL_DEFAULT,
-        token_set: EsiTokenSet | None = None,
+        refresh_token: str | None = None,
     ) -> None:
         self.api_client: ApiClient = api_client
         self.scope_manager: EsiScopeManager = scope_manager
@@ -63,11 +63,11 @@ class EsiAuth:
             metadata_ttl=metadata_ttl,
             jwks_ttl=jwks_ttl,
         )
-        self._token_set: EsiTokenSet | None = token_set
         self.redirect_uri: str = redirect_uri
         self.client_id: str = client_id
         self.client_secret: str | None = client_secret
         self._pkce: EsiPKCEResult | None = None
+        self._token_set: EsiTokenSet | None = self.refresh(refresh_token) if refresh_token else None
 
     @property
     def endpoints(self) -> EsiMetadataResponseEndpoints:
@@ -85,11 +85,11 @@ class EsiAuth:
 
     @property
     def access_token(self) -> str:
-        if not self._token_set:
-            raise ValueError("No token set available")
-        if self._token_expired:
-            self.refresh_token()
-        return self._token_set.access_token
+        return self._get_updated_token_set().access_token
+
+    @property
+    def refresh_token(self) -> str:
+        return self._get_updated_token_set().refresh_token
 
     @classmethod
     def _b64url_no_pad(cls, b: bytes) -> str:
@@ -102,6 +102,35 @@ class EsiAuth:
         challenge = cls._b64url_no_pad(digest)
         return EsiPKCEResult(verifier=verifier, challenge=challenge)
 
+    def _request_token(self, request: EsiAuthorizationCodeRequest | EsiRefreshTokenRequest) -> EsiTokenSet:
+        """Make token request to OAuth endpoint."""
+        headers = self._get_auth_headers()
+
+        res = self.api_client.call_api(
+            method="POST", url=self.endpoints.token_endpoint, header_params=headers, post_params=request.model_dump()
+        )
+
+        if res.status != 200:
+            raise ApiException(res.status, res.data)
+
+        token_response = EsiTokenResponse.model_validate_json(res.read())
+        return EsiTokenSet.from_token_response(token_response)
+
+    def _get_auth_headers(self) -> dict[str, str]:
+        """Get authentication headers for token requests."""
+        if self.client_secret:
+            return EsiRequestHeaders(
+                basic_auth_headers=EsiBasicAuthHeaders(client_id=self.client_id, client_secret=self.client_secret)
+            ).model_dump()
+        return EsiRequestHeaders().model_dump()
+
+    def _get_updated_token_set(self):
+        if not self._token_set:
+            raise ValueError("No token set available")
+        if self._token_expired:
+            self.refresh()
+        return self._token_set
+
     def exchange_code(self, code: str) -> EsiTokenSet:
         """Exchange authorization code for tokens."""
         if not self.client_secret and not self._pkce:
@@ -113,7 +142,7 @@ class EsiAuth:
         self._token_set = self._request_token(request)
         return self._token_set
 
-    def refresh_token(self, refresh_token: str | None = None) -> EsiTokenSet:
+    def refresh(self, refresh_token: str | None = None) -> EsiTokenSet:
         """Refresh expired access token."""
         token = refresh_token or (self._token_set.refresh_token if self._token_set else None)
         if not token:
@@ -128,7 +157,7 @@ class EsiAuth:
         self._token_set = self._request_token(request)
         return self._token_set
 
-    def verify_token(self, access_token: str | None = None) -> EsiJwtTokenData:
+    def verify(self, access_token: str | None = None) -> EsiJwtTokenData:
         """Verify JWT token and return decoded data."""
         token = access_token or self.access_token
         if not token:
@@ -162,25 +191,3 @@ class EsiAuth:
         )
         url = f"{self.endpoints.authorization_endpoint}?{urllib.parse.urlencode(params.model_dump(exclude_none=True))}"
         return EsiAuthorizationUrlData(url=url, state=params.state)
-
-    def _request_token(self, request: EsiAuthorizationCodeRequest | EsiRefreshTokenRequest) -> EsiTokenSet:
-        """Make token request to OAuth endpoint."""
-        headers = self._get_auth_headers()
-
-        res = self.api_client.call_api(
-            method="POST", url=self.endpoints.token_endpoint, header_params=headers, post_params=request.model_dump()
-        )
-
-        if res.status != 200:
-            raise ApiException(res.status, res.data)
-
-        token_response = EsiTokenResponse.model_validate_json(res.read())
-        return EsiTokenSet.from_token_response(token_response)
-
-    def _get_auth_headers(self) -> dict[str, str]:
-        """Get authentication headers for token requests."""
-        if self.client_secret:
-            return EsiRequestHeaders(
-                basic_auth_headers=EsiBasicAuthHeaders(client_id=self.client_id, client_secret=self.client_secret)
-            ).model_dump()
-        return EsiRequestHeaders().model_dump()

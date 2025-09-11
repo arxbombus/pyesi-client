@@ -8,7 +8,7 @@ caching, rate limiting, and utility functions.
 
 __version__ = "0.1.0"
 
-from pyesi_client.core.client import EsiClient
 from pyesi_client.constants import EsiScope
+from pyesi_client.core import EsiAuth, EsiClient, EsiMetadataManager, EsiScopeManager
 
-__all__ = ["EsiClient", "EsiScope"]
+__all__ = ["EsiAuth", "EsiClient", "EsiMetadataManager", "EsiScopeManager", "EsiScope"]
